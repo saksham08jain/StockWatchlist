@@ -86,23 +86,32 @@ public class UserController {
                 HttpStatus.OK);
     }
 
-    @PatchMapping(path = "/users/{id}")
-    //isnt implmented yet so , anyway i should get a new resposne entity
-    //and db shouldnt be changed
-    public ResponseEntity<UserDto> partialUpdate(
-            @PathVariable("id") Long userId,
-            @RequestBody UserDto userDto
-    ) {
+
+
+    @PatchMapping("/users/{id}")
+    public ResponseEntity<UserDto> partialUpdateUser(
+            @PathVariable Long userId,
+            @RequestBody UserDto incomingUser)
+    {
         if(!userService.isExists(userId)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        UserEntity userEntity = userMapper.mapFrom(userDto);
-        UserEntity updatedUser = userService.partialUpdate(userId, userEntity);
-        return new ResponseEntity<>(
-                userMapper.mapTo(updatedUser),
-                HttpStatus.OK);
-    }
+
+        Optional<UserEntity> updatedUser = userService.partialUpdate(userId, incomingUser);
+
+        updatedUser.map(finalUser->{
+
+            return new ResponseEntity<>(
+                    userMapper.mapTo(finalUser),
+                    HttpStatus.OK);
+
+
+
+                )}
+                .orElse(
+                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                )
 
     @DeleteMapping(path = "/users/{id}")
     public ResponseEntity deleteUser(@PathVariable("id") Long userId) {

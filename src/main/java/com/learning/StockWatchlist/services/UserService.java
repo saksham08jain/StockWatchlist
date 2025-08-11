@@ -1,7 +1,7 @@
 package com.learning.StockWatchlist.services;
 
+import com.learning.StockWatchlist.domain.dto.UserDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
-import org.apache.catalina.User;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +20,10 @@ public interface UserService
      */
     List<UserEntity> findAll();
     Optional<UserEntity>findOne(Long userId);
-    UserEntity partialUpdate(Long userId,UserEntity userEntity);
+    Optional<UserEntity> partialUpdate(Long userId, UserEntity userEntity);
+
+    Optional<UserEntity> partialUpdate(Long userId, UserDto userDto);
+
     void delete(Long userId);
     boolean isExists(Long userId);
     UserEntity save(UserEntity u);

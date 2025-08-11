@@ -1,10 +1,9 @@
 package com.learning.StockWatchlist.services.impl;
 
+import com.learning.StockWatchlist.domain.dto.UserDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
 import com.learning.StockWatchlist.domain.repositories.UserRepository;
 import com.learning.StockWatchlist.services.UserService;
-import org.apache.catalina.User;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -43,24 +42,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserEntity partialUpdate(Long userId, UserEntity userEntity) {
-        //this is probably wrong right now , will come back to this
-        //the issue is my db has non nullable fields so ...
-        //since this takes an userEntity and updates it hmmm
-
-//        authorEntity.setId(id);
-//
-//        return authorRepository.findById(id).map(existingAuthor -> {
-//            Optional.ofNullable(authorEntity.getName()).ifPresent(existingAuthor::setName);
-//            Optional.ofNullable(authorEntity.getAge()).ifPresent(existingAuthor::setAge);
-//            return authorRepository.save(existingAuthor);
-//        }).orElseThrow(() -> new RuntimeException("Author does not exist"));
-
-        //its actual patch not overwirting save
-        //i do need an id to check if the userexists and actaully update them in db
-        return new UserEntity(99999L,"placeholder","placeholder","placeholder");
+    public Optional<UserEntity> partialUpdate(Long userId, UserDto userDto) {
+        return userRepository.findById(userId).map(existingUser -> {
+            // Only update fields that are provided in the request
+            if (userDto.getEmail() != null) {
+                existingUser.setEmail(userDto.getEmail());
+            }
+            if (userDto.getName() != null) {
+                existingUser.setName(userDto.getName());
+            }
+            if (userDto.getMobileNumber() != null) {
+                existingUser.setMobileNumber(userDto.getMobileNumber());
+            }
+            return userRepository.save(existingUser);
+        });
     }
-
     @Override
     public void delete(Long userId) {
         userRepository.deleteById(userId);
