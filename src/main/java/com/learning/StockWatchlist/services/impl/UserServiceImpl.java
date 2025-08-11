@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<UserEntity> partialUpdate(Long userId, UserDto userDto) {
+    public UserEntity partialUpdate(Long userId, UserDto userDto) {
         return userRepository.findById(userId).map(existingUser -> {
             // Only update fields that are provided in the request
             if (userDto.getEmail() != null) {
@@ -55,7 +55,7 @@ public class UserServiceImpl implements UserService {
                 existingUser.setMobileNumber(userDto.getMobileNumber());
             }
             return userRepository.save(existingUser);
-        });
+        }).orElseThrow(()->new RuntimeException("User does not exist "));
     }
     @Override
     public void delete(Long userId) {

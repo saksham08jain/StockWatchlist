@@ -20,9 +20,9 @@ public interface UserService
      */
     List<UserEntity> findAll();
     Optional<UserEntity>findOne(Long userId);
-    Optional<UserEntity> partialUpdate(Long userId, UserEntity userEntity);
 
-    Optional<UserEntity> partialUpdate(Long userId, UserDto userDto);
+
+    UserEntity partialUpdate(Long userId, UserDto userDto);
 
     void delete(Long userId);
     boolean isExists(Long userId);

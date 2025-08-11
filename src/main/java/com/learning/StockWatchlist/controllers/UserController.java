@@ -90,29 +90,18 @@ public class UserController {
 
     @PatchMapping("/users/{id}")
     public ResponseEntity<UserDto> partialUpdateUser(
-            @PathVariable Long userId,
-            @RequestBody UserDto incomingUser)
-    {
-        if(!userService.isExists(userId)) {
+            @PathVariable("id") Long userId,
+            @RequestBody UserDto incomingUser) {
+
+        if (!userService.isExists(userId)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-
-        Optional<UserEntity> updatedUser = userService.partialUpdate(userId, incomingUser);
-
-        updatedUser.map(finalUser->{
-
-            return new ResponseEntity<>(
-                    userMapper.mapTo(finalUser),
-                    HttpStatus.OK);
-
-
-
-                )}
-                .orElse(
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                )
-
+        UserEntity updatedUser = userService.partialUpdate(userId, incomingUser);
+        return new ResponseEntity<>(
+                userMapper.mapTo(updatedUser),
+                HttpStatus.OK);
+    }
     @DeleteMapping(path = "/users/{id}")
     public ResponseEntity deleteUser(@PathVariable("id") Long userId) {
         userService.delete(userId);
