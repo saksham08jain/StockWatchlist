@@ -4,3 +4,13 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     mobile_number VARCHAR(15) UNIQUE NOT NULL
 );
+
+--actually exchange+ticker can be primary key not just ticker
+
+CREATE TABLE IF NOT EXISTS Stocks (
+   ticker VARCHAR(20)  PRIMARY KEY ,
+   name varchar(50) ,
+   sector varchar(30)
+);
+
+
