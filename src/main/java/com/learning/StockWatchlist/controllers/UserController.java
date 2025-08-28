@@ -1,36 +1,33 @@
 package com.learning.StockWatchlist.controllers;
 
-import com.learning.StockWatchlist.domain.dto.UserDto;
+import com.learning.StockWatchlist.domain.dto.UserRequestDto;
+import com.learning.StockWatchlist.domain.dto.UserResponseDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
-import com.learning.StockWatchlist.domain.mappers.Mapper;
+import com.learning.StockWatchlist.domain.mappers.GenericMapper;
+import com.learning.StockWatchlist.domain.mappers.UserMapper;
 import com.learning.StockWatchlist.services.UserService;
-import org.apache.catalina.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RestController
-//why am i not going through usercontroller then usercontrollerimpl? cause i dont need swapping ability?
-//hmmm
-@RequestMapping("/api/v1")
+
+@RequestMapping("/api/v1/users")
 public class UserController {
-    private UserService userService;
-    private Mapper<UserEntity, UserDto> userMapper;
+    //all final fields are autowired via lombok required constructor
+    //what happens it creates a constructor with final variables and puts explicit autowired on it
 
-    public UserController(UserService userService, Mapper<UserEntity, UserDto> userMapper)
-    {
-        this.userMapper=userMapper;
-        this.userService=userService;//spring finds and injects them thats why we had mapper impl template
-        //spring will find what impl uses these two tyeps and inject it here
-    }
+    private final UserService userService;
+    private final UserMapper userMapper;
 
-    @GetMapping(path= "/users")
-    public List<UserDto> getAllUsers()
+
+    @GetMapping
+    public List<UserResponseDto> getAllUsers()
     {
         //userService returns entities
         //i need to mapp entities to dtos
@@ -38,17 +35,16 @@ public class UserController {
         List<UserEntity> userEntities=userService.findAll();
         //mapToDto
 
-       return userEntities.stream().map(userMapper::mapTo).collect(Collectors.toList());
+       return userEntities.stream().map(userMapper::toResponse).collect(Collectors.toList());
 
     }
-    @GetMapping(path="/users/{id}")
-
-    public ResponseEntity<UserDto> getUser(@PathVariable("id") Long userId)
+    @GetMapping(path="/{id}")
+    public ResponseEntity<UserResponseDto> getUser(@PathVariable("id") Long userId)
     {
         Optional<UserEntity> foundUser=userService.findOne(userId);
 
         return  foundUser.map(userEntity -> {
-                    UserDto userDto=userMapper.mapTo(userEntity);
+                    UserResponseDto userDto=userMapper.toResponse(userEntity);
                     return new ResponseEntity<>(userDto,HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -58,40 +54,41 @@ public class UserController {
     }
 
     //i need to check what happens when i have various fields since many are non nullable
-    @PostMapping(path = "/users")
+    @PostMapping
     //very intersting if non unique contraint isnt met userId still autoInctrements which means first userId is getting
     //incremented then db is checking contraints
     //hmm , gotta read more about dbs i guess
 
-    public ResponseEntity<UserDto> createUser(@RequestBody UserDto user) {
-        UserEntity userEntity = userMapper.mapFrom(user);
+    public ResponseEntity<UserResponseDto> createUser(@RequestBody UserRequestDto user) {
+        UserEntity userEntity = userMapper.toEntity(user);
         UserEntity savedUserEntity = userService.save(userEntity);
-        return new ResponseEntity<>(userMapper.mapTo(savedUserEntity), HttpStatus.CREATED);
+        return new ResponseEntity<>(userMapper.toResponse(savedUserEntity), HttpStatus.CREATED);
     }
 
-    @PutMapping(path = "/users/{id}")
-    public ResponseEntity<UserDto> fullUpdateUser(
+    @PutMapping(path = "/{id}")
+    public ResponseEntity<UserResponseDto> fullUpdateUser(
             @PathVariable("id") Long userId,
-            @RequestBody UserDto userDto) {
+            @RequestBody UserRequestDto userDto) {
 
         if(!userService.isExists(userId)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         userDto.setUserId(userId);
-        UserEntity userEntity = userMapper.mapFrom(userDto);
+        UserEntity userEntity = userMapper.toEntity(userDto);
         UserEntity savedUserEntity = userService.save(userEntity);
+        System.out.println(savedUserEntity);
         return new ResponseEntity<>(
-                userMapper.mapTo(savedUserEntity),
+                userMapper.toResponse(savedUserEntity),
                 HttpStatus.OK);
     }
 
 
 
-    @PatchMapping("/users/{id}")
-    public ResponseEntity<UserDto> partialUpdateUser(
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponseDto> partialUpdateUser(
             @PathVariable("id") Long userId,
-            @RequestBody UserDto incomingUser) {
+            @RequestBody UserRequestDto incomingUser) {
 
         if (!userService.isExists(userId)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -99,10 +96,10 @@ public class UserController {
 
         UserEntity updatedUser = userService.partialUpdate(userId, incomingUser);
         return new ResponseEntity<>(
-                userMapper.mapTo(updatedUser),
+                userMapper.toResponse(updatedUser),
                 HttpStatus.OK);
     }
-    @DeleteMapping(path = "/users/{id}")
+    @DeleteMapping(path = "/{id}")
     public ResponseEntity deleteUser(@PathVariable("id") Long userId) {
         userService.delete(userId);
         return new ResponseEntity(HttpStatus.NO_CONTENT);

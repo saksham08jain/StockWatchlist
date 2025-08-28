@@ -12,19 +12,25 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name="users")
-public class UserEntity {
+@Table(name="watchlists")
+public class WatchlistEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="user_id")
-    private Long userId;
-    @Column(nullable = false,unique = true)
-    private String email;
-    @Column(nullable = false)
-    private String name;
-    @Column(name = "mobile_number",unique = true,nullable = false)
-    private String mobileNumber;
+    @Column(name="watchlist_id")
+    private Long watchlistId;
+    
+    @Column
+    @Builder.Default
+    private String name = "My Watchlist";
+    
+    @ManyToOne
+    @JoinColumn(name = "creator", referencedColumnName = "user_id")
+    private UserEntity creator;
+    
+    @Column(name = "needs_refresh")
+    @Builder.Default
+    private Boolean needsRefresh = false;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;

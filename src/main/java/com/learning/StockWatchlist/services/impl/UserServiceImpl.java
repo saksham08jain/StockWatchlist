@@ -1,6 +1,7 @@
 package com.learning.StockWatchlist.services.impl;
 
 import com.learning.StockWatchlist.domain.dto.UserDto;
+import com.learning.StockWatchlist.domain.dto.UserRequestDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
 import com.learning.StockWatchlist.domain.repositories.UserRepository;
 import com.learning.StockWatchlist.services.UserService;
@@ -42,7 +43,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserEntity partialUpdate(Long userId, UserDto userDto) {
+    public UserEntity partialUpdate(Long userId, UserRequestDto userDto) {
         return userRepository.findById(userId).map(existingUser -> {
             // Only update fields that are provided in the request
             if (userDto.getEmail() != null) {
@@ -68,7 +69,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserEntity save(UserEntity user) {
-        return userRepository.save(user);
+    public UserEntity save(UserEntity userEntity) {
+        if (userEntity.getUserId() != null) {
+            // This is an update operation, not a new entity
+            // We need to preserve the original createdAt value
+            return userRepository.findById(userEntity.getUserId())
+                .map(existingUser -> {
+                    // Preserve creation timestamp
+                    userEntity.setCreatedAt(existingUser.getCreatedAt());
+                    return userRepository.save(userEntity);
+                })
+                .orElseThrow(() -> new RuntimeException("Cannot update non-existent user with ID: " + userEntity.getUserId()));
+        } else {
+            // This is a new entity
+            return userRepository.save(userEntity);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.learning.StockWatchlist.services;
 
-import com.learning.StockWatchlist.domain.dto.UserDto;
+import com.learning.StockWatchlist.domain.dto.UserResponseDto;
+import com.learning.StockWatchlist.domain.dto.UserRequestDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public interface UserService
     Optional<UserEntity>findOne(Long userId);
 
 
-    UserEntity partialUpdate(Long userId, UserDto userDto);
+    UserEntity partialUpdate(Long userId, UserRequestDto userDto);
 
     void delete(Long userId);
     boolean isExists(Long userId);

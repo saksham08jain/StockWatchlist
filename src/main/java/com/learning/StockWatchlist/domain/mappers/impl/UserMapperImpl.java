@@ -1,31 +1,25 @@
 package com.learning.StockWatchlist.domain.mappers.impl;
 
-import com.learning.StockWatchlist.domain.dto.UserDto;
+import com.learning.StockWatchlist.domain.dto.UserRequestDto;
+import com.learning.StockWatchlist.domain.dto.UserResponseDto;
 import com.learning.StockWatchlist.domain.entity.UserEntity;
-import com.learning.StockWatchlist.domain.mappers.Mapper;
+import com.learning.StockWatchlist.domain.mappers.UserMapper;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-@Component//cause this is a bean , things depend on this implementation
-public class UserMapperImpl implements Mapper<UserEntity, UserDto> {
-
-    private ModelMapper modelMapper;
-    public  UserMapperImpl(ModelMapper modelMapper)
-    {
-        this.modelMapper=modelMapper;
-
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@Component
+public class UserMapperImpl implements UserMapper {
+    private final ModelMapper modelMapper;
+    @Override
+    public UserEntity toEntity(UserRequestDto userRequestDto) {
+        return modelMapper.map(userRequestDto,UserEntity.class);
     }
 
     @Override
-    public UserDto mapTo(UserEntity userEntity) {
-        //I need to return a User Dto
-        return modelMapper.map(userEntity, UserDto.class);//without model mapper id need to do this via various
-                                                                //constructors and ig nullable woudl also have been an issue
-
-    }
-
-    @Override
-    public UserEntity mapFrom(UserDto userDto) {
-        return modelMapper.map(userDto,UserEntity.class);
+    public UserResponseDto toResponse(UserEntity userEntity) {
+        return modelMapper.map(userEntity,UserResponseDto.class);
     }
 }

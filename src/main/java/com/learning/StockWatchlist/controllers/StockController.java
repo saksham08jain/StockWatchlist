@@ -2,7 +2,7 @@ package com.learning.StockWatchlist.controllers;
 
 import com.learning.StockWatchlist.domain.dto.StockDto;
 import com.learning.StockWatchlist.domain.entity.StockEntity;
-import com.learning.StockWatchlist.domain.mappers.Mapper;
+import com.learning.StockWatchlist.domain.mappers.GenericMapper;
 import com.learning.StockWatchlist.services.StockService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,88 +13,100 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-//why am i not going through stockcontroller then stockcontrollerimpl? cause i dont need swapping ability?
-//hmmm
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/stocks")
 public class StockController {
-    private StockService stockService;
-    private Mapper<StockEntity, StockDto> stockMapper;
+    private final StockService stockService;
+    private final GenericMapper<StockEntity, StockDto> stockGenericMapper;
 
-    public StockController(StockService stockService, Mapper<StockEntity, StockDto> stockMapper)
-    {
-        this.stockMapper=stockMapper;
-        this.stockService=stockService;
+    public StockController(StockService stockService, GenericMapper<StockEntity, StockDto> stockGenericMapper) {
+        this.stockGenericMapper = stockGenericMapper;
+        this.stockService = stockService;
     }
 
-    @GetMapping(path= "/stocks")
-    public List<StockDto> getAllStocks()
-    {
-        
-        List<StockEntity> stockEntities=stockService.findAll();
-        
-
-       return stockEntities.stream().map(stockMapper::mapTo).collect(Collectors.toList());
-
+    @GetMapping
+    public List<StockDto> getAllStocks(@RequestParam(required = false) Boolean activeOnly) {
+        List<StockEntity> stocks;
+        if (activeOnly != null && activeOnly) {
+            stocks = stockService.findAllActive();
+        } else {
+            stocks = stockService.findAll();
+        }
+        return stocks.stream().map(stockGenericMapper::mapTo).collect(Collectors.toList());
     }
-    @GetMapping(path="/stocks/{ticker}")
 
-    public ResponseEntity<StockDto> getStock(@PathVariable("ticker") String stockTicker)
-    {
-        Optional<StockEntity> foundStock=stockService.findOne(stockTicker);
-
-        return  foundStock.map(stockEntity -> {
-                    StockDto stockDto=stockMapper.mapTo(stockEntity);
-                    return new ResponseEntity<>(stockDto,HttpStatus.OK);
-                })
+    @GetMapping("/{exchange}/{ticker}")
+    public ResponseEntity<StockDto> getStock(
+            @PathVariable String exchange, 
+            @PathVariable String ticker) {
+        Optional<StockEntity> stock = stockService.findById(exchange, ticker);
+        return stock.map(s -> new ResponseEntity<>(stockGenericMapper.mapTo(s), HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-
-        
     }
 
-   
-    @PostMapping(path = "/stocks")
-    public ResponseEntity<StockDto> createStock(@RequestBody StockDto stock) {
-        StockEntity stockEntity = stockMapper.mapFrom(stock);
-        StockEntity savedStockEntity = stockService.save(stockEntity);
-        return new ResponseEntity<>(stockMapper.mapTo(savedStockEntity), HttpStatus.CREATED);
+    @GetMapping("/search")
+    public List<StockDto> searchStocks(
+            @RequestParam(required = false) String exchange,
+            @RequestParam(required = false) String ticker,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String sector) {
+
+        List<StockEntity> stocks;
+        if (exchange != null && ticker != null) {
+            stocks = stockService.findByExchangeAndTickerPattern(exchange, ticker);
+        } else if (name != null) {
+            stocks = stockService.findByNamePattern(name);
+        } else if (sector != null) {
+            stocks = stockService.findBySector(sector);
+        } else {
+            stocks = stockService.findAllActive();
+        }
+        return stocks.stream().map(stockGenericMapper::mapTo).collect(Collectors.toList());
     }
 
-    @PutMapping(path = "/stocks/{ticker}")
-    public ResponseEntity<StockDto> fullUpdateStock(
-            @PathVariable("ticker") String stockTicker,
+    @PostMapping
+    public ResponseEntity<StockDto> createStock(@RequestBody StockDto stockDto) {
+        StockEntity stockEntity = stockGenericMapper.mapFrom(stockDto);
+        StockEntity savedStock = stockService.save(stockEntity);
+        return new ResponseEntity<>(stockGenericMapper.mapTo(savedStock), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{exchange}/{ticker}")
+    public ResponseEntity<StockDto> updateStock(
+            @PathVariable String exchange,
+            @PathVariable String ticker,
             @RequestBody StockDto stockDto) {
-
-        if(!stockService.isExists(stockTicker)) {
+        if (!stockService.exists(exchange, ticker)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-
-        stockDto.setTicker(stockTicker);
-        StockEntity stockEntity = stockMapper.mapFrom(stockDto);
-        StockEntity savedStockEntity = stockService.save(stockEntity);
-        return new ResponseEntity<>(
-                stockMapper.mapTo(savedStockEntity),
-                HttpStatus.OK);
+        
+        StockEntity stockEntity = stockGenericMapper.mapFrom(stockDto);
+        StockEntity updatedStock = stockService.update(exchange, ticker, stockEntity);
+        return new ResponseEntity<>(stockGenericMapper.mapTo(updatedStock), HttpStatus.OK);
     }
 
-
-
-    @PatchMapping("/stocks/{ticker}")
+    @PatchMapping("/{exchange}/{ticker}")
     public ResponseEntity<StockDto> partialUpdateStock(
-            @PathVariable("ticker") String stockTicker,
-            @RequestBody StockDto incomingStock) {
-
-        if (!stockService.isExists(stockTicker)) {
+            @PathVariable String exchange,
+            @PathVariable String ticker,
+            @RequestBody StockDto stockDto) {
+        if (!stockService.exists(exchange, ticker)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-
-        StockEntity updatedStock = stockService.partialUpdate(stockTicker, incomingStock);
-        return new ResponseEntity<>(
-                stockMapper.mapTo(updatedStock),
-                HttpStatus.OK);
+        
+        StockEntity stockEntity = stockGenericMapper.mapFrom(stockDto);
+        StockEntity updatedStock = stockService.partialUpdate(exchange, ticker, stockEntity);
+        return new ResponseEntity<>(stockGenericMapper.mapTo(updatedStock), HttpStatus.OK);
     }
-    @DeleteMapping(path = "/stocks/{ticker}")
-    public ResponseEntity deleteStock(@PathVariable("ticker") String stockTicker) {
-        stockService.delete(stockTicker);
-        return new ResponseEntity(HttpStatus.NO_CONTENT);
+
+    @DeleteMapping("/{exchange}/{ticker}")
+    public ResponseEntity<Void> softDeleteStock(
+            @PathVariable String exchange,
+            @PathVariable String ticker) {
+        if (!stockService.exists(exchange, ticker)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        
+        stockService.softDelete(exchange, ticker);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

@@ -4,15 +4,19 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDto {
-    private Long userId;//userId in DTO , probably shouldnt be there ,
+public class UserResponseDto {
+    private Long userId;
     private String email;
     private String name;
     private String mobileNumber;
-
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
+
+

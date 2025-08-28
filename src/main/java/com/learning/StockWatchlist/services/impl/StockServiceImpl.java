@@ -1,70 +1,100 @@
 package com.learning.StockWatchlist.services.impl;
 
-import com.learning.StockWatchlist.domain.dto.StockDto;
 import com.learning.StockWatchlist.domain.entity.StockEntity;
+import com.learning.StockWatchlist.domain.entity.StockId;
 import com.learning.StockWatchlist.domain.repositories.StockRepository;
 import com.learning.StockWatchlist.services.StockService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class StockServiceImpl implements StockService {
 
-    private StockRepository stockRepository;//should this be final? why why not?
+    private final StockRepository stockRepository;
 
-    public StockServiceImpl(StockRepository stockRepository)
-    {
-        this.stockRepository=stockRepository;
+    public StockServiceImpl(StockRepository stockRepository) {
+        this.stockRepository = stockRepository;
     }
 
     @Override
     public List<StockEntity> findAll() {
-        return StreamSupport.stream(stockRepository
-                                .findAll()
-                                .spliterator(),
-                        false)
-                .collect(Collectors.toList());
-
+        return stockRepository.findAll();
     }
 
     @Override
-    public Optional<StockEntity> findOne(String stockId) {
-        return stockRepository.findById(stockId);
-
+    public List<StockEntity> findAllActive() {
+        return stockRepository.findByIsActiveTrue();
     }
 
     @Override
-    public StockEntity partialUpdate(String stockId, StockDto stockDto) {
-        return stockRepository.findById(stockId).map(existingStock -> {
-            // Only update fields that are provided in the request
-            if (stockDto.getSector() != null) {
-                existingStock.setSector(stockDto.getSector());
-            }
-            if (stockDto.getName() != null) {
-                existingStock.setName(stockDto.getName());
-            }
-            if (stockDto.getSector() != null) {
-                existingStock.setSector(stockDto.getSector());
-            }
-            return stockRepository.save(existingStock);
-        }).orElseThrow(()->new RuntimeException("Stock does not exist "));
-    }
-    @Override
-    public void delete(String stockId) {
-        stockRepository.deleteById(stockId);
+    public Optional<StockEntity> findById(String exchange, String ticker) {
+        return stockRepository.findById(new StockId(exchange, ticker));
     }
 
     @Override
-    public boolean isExists(String stockId) {
-        return stockRepository.existsById(stockId);
+    public List<StockEntity> findByExchangeAndTickerPattern(String exchange, String tickerPattern) {
+        return stockRepository.findByExchangeAndTickerContaining(exchange, tickerPattern);
+    }
+
+    @Override
+    public List<StockEntity> findByNamePattern(String namePattern) {
+        return stockRepository.findByNameContainingIgnoreCase(namePattern);
+    }
+
+    @Override
+    public List<StockEntity> findBySector(String sector) {
+        return stockRepository.findBySectorAndIsActiveTrue(sector);
     }
 
     @Override
     public StockEntity save(StockEntity stock) {
         return stockRepository.save(stock);
+    }
+
+    @Override
+    public StockEntity update(String exchange, String ticker, StockEntity stock) {
+        if (!exists(exchange, ticker)) {
+            throw new RuntimeException("Stock not found");
+        }
+        
+        stock.setExchange(exchange);
+        stock.setTicker(ticker);
+        return stockRepository.save(stock);
+    }
+
+    @Override
+    public StockEntity partialUpdate(String exchange, String ticker, StockEntity stock) {
+        return stockRepository.findById(new StockId(exchange, ticker)).map(existingStock -> {
+            if (stock.getName() != null) {
+                existingStock.setName(stock.getName());
+            }
+            if (stock.getSector() != null) {
+                existingStock.setSector(stock.getSector());
+            }
+            if (stock.getIsActive() != null) {
+                existingStock.setIsActive(stock.getIsActive());
+                if (!stock.getIsActive()) {
+                    existingStock.setDelistedAt(LocalDateTime.now());
+                }
+            }
+            return stockRepository.save(existingStock);
+        }).orElseThrow(() -> new RuntimeException("Stock not found"));
+    }
+
+    @Override
+    public void softDelete(String exchange, String ticker) {
+        stockRepository.findById(new StockId(exchange, ticker)).ifPresent(stock -> {
+            stock.setIsActive(false);
+            stock.setDelistedAt(LocalDateTime.now());
+            stockRepository.save(stock);
+        });
+    }
+
+    @Override
+    public boolean exists(String exchange, String ticker) {
+        return stockRepository.existsById(new StockId(exchange, ticker));
     }
 }

@@ -10,13 +10,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StockDto {
-    private String exchange;
-    private String ticker;
+public class UserRequestDto {
+    private Long userId;
+    private String email;
     private String name;
-    private String sector;
-    private Boolean isActive;
-    private LocalDateTime delistedAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String mobileNumber;
+
 }
+
+
